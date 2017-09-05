@@ -1,6 +1,8 @@
 # ZED
 
-#Camera.hpp
+## Camera.hpp
+
+1. Pose
 ```
 class SLSTEREO_EXPORT_DLL Pose:
 {
