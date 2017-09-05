@@ -16,3 +16,10 @@ sl::Transform pose_data;//变换矩阵（T）4X4
 int pose_confidence;//位姿估计置信度
 };
 ```
+2. class CameraMemberHandler;
+```
+class SLSTEREO_EXPORT_DLL Camera {
+
+
+
+```
