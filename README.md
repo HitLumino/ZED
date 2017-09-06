@@ -8,8 +8,12 @@
 ## Camera.hpp
 1. InitParameters
 class SL_SDK_EXPORT InitParameters {
-*  RESOLUTION camera_resolution;
-
+*  RESOLUTION camera_resolution;//默认 RESOLUTION_HD720
+*  int camera_fps;//set 0 表示按照默认
+*  int camera_image_flip;//是否水平翻转，默认false
+*  bool camera_disable_self_calib;//默认false,默认自我标定且能够优化
+*  bool enable_right_side_measure;//默认flase,Defines if right MEASURE should be computed (needed for MEASURE_<XXX>_RIGHT)
+*  int camera_buffer_count_linux;//只有linux有.减少这个值会减少延迟，但是会增加坏帧。默认为4
 
 1. Pose
 ```
