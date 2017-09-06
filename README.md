@@ -110,14 +110,31 @@ TrackingParameters(sl::Transform init_pos = sl::Transform(), bool _enable_memory
             3. RESOLUTION_LOW//0.08米   
         };
 *  enum RANGE {  
-            RANGE_NEAR, // Only depth close to the camera will be used by the spatial mapping.3.5米  
-            RANGE_MEDIUM, //Medium depth range 0.5米 默认选项   
-            RANGE_FAR //useful outdoor.10米   
-          }；
-`void set(RESOLUTION resolution = RESOLUTION_HIGH) {   //设置函数默认选项是default : RESOLUTION_HIGH
+            RANGE_NEAR, // Only depth close to the camera will be used by the spatial mapping.3.5米 \n 
+            RANGE_MEDIUM, //Medium depth range 0.5米 默认选项 \n
+            RANGE_FAR //useful outdoor.10米   \n
+        }；
+```
+void set(RESOLUTION resolution = RESOLUTION_HIGH) {   //设置函数默认选项是default : RESOLUTION_HIGH
             resolution_meter = get(resolution);   
-        }`
+        }
+void set(RANGE range = RANGE_MEDIUM) {
+            range_meter.second = get(range);
+        }
+```
+*  float resolution_meter = 0.03f;//Spatial mapping resolution in meters
+*  const interval allowed_resolution = std::make_pair(0.01f, 0.2f);//mapping允许的分辨率
+*  interval range_meter = std::make_pair(0.7f, 5.f);//0.7~5米 range_meter.first（min)  range_meter.second（max）
+*  const interval allowed_min = std::make_pair(0.3f, 10.f);//允许的最小深度取值范围
+*  const interval allowed_max = std::make_pair(2.f, 20.f);//允许的大深度取值范围
+*  bool save_texture = true;//纹理
+*  bool keep_mesh_consistent = true;//使网格连续
+*  int max_memory_usage = 2048;//最大允许CPU内存2048M
+*  bool inverse_triangle_vertices_order = false;
+*  bool save(sl::String filename);
+*  bool load(sl::String filename);
 
+**SpatialMappingParameters构造函数
 ```
 SpatialMappingParameters(RESOLUTION resolution = RESOLUTION_HIGH,
                                  RANGE range = RANGE_MEDIUM,
@@ -132,19 +149,10 @@ SpatialMappingParameters(RESOLUTION resolution = RESOLUTION_HIGH,
             set(resolution);
             set(range);
 ```
+------------------------------------------------------------------
+### 5. Pose
+**class SL_SDK_EXPORT Pose**
 
-
-
-
-
-
-
-
-
-
-
-
-1. Pose
 ```
 class SLSTEREO_EXPORT_DLL Pose:
 {
