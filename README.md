@@ -30,7 +30,7 @@
 *  bool save(sl::String filename);//保存当前配置文件到文档中，路径名
 *  bool load(sl::String filename);//加载配置文件
 ------------------------------------------------
-_InitParameters默认构造函数如下：_
+**InitParameters默认构造函数如下:**
 ```
 InitParameters(RESOLUTION camera_resolution_ = RESOLUTION_HD720,
                        int camera_fps_ = 0,
@@ -71,7 +71,8 @@ InitParameters(RESOLUTION camera_resolution_ = RESOLUTION_HD720,
 ### 2. RuntimeParameter
 
 ___class SL_SDK_EXPORT RuntimeParameters___
-*  SENSING_MODE sensing_mode;//定义深度地图计算方法，更多的参考sl::SENSING_MODE definition。默认：__sl::SENSING_MODE::SENSING_MODE_STANDARD__
+*  SENSING_MODE sensing_mode;//定义深度地图计算方法，更多的参考sl::SENSING_MODE definition。默认：`__sl::SENSING_MODE::SENSING_MODE_STANDARD__`
+*  REFERENCE_FRAME measure3D_reference_frame;//提供3D测量（点云）
 
 
 
