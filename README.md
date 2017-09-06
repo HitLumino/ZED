@@ -88,11 +88,46 @@ RuntimeParameters(SENSING_MODE sensing_mode_ = SENSING_MODE::**SENSING_MODE_STAN
 ### 3. TrackingParameters
 **class SL_SDK_EXPORT TrackingParameters**
 *  sl::Transform initial_world_transform;//相机一开始运行时的在世界坐标系下的位置默认认为单位矩阵
-*  bool enable_spatial_memory;//
-
-
-
-
+*  bool enable_spatial_memory;//使相机能够学习和记住他的环境，有利于纠正运动漂移，和位置。这需要一些资源去跑，但能够有效的改善跟踪精度。建议打开
+*  sl::String area_file_path;//Area localization mode 可以记录和加载一个描述环境的文件
+        \note Loading an area file will start a searching phase during which the camera will try to position itself in the previously learned area.
+        \warning : The area file describes a specific location. If you are using an area file describing a different location, the tracking function will continuously search for a position and may not find a correct one.
+        \warning The '.area' file can only be used with the same depth mode (sl::MODE) as the one used during area recording.
+*  bool save(sl::String filename);
+*  bool load(sl::String filename);
+```
+TrackingParameters(sl::Transform init_pos = sl::Transform(), bool _enable_memory = true, sl::String _area_path = sl::String())
+            : initial_world_transform(init_pos)
+            , enable_spatial_memory(_enable_memory)
+            , area_file_path(_area_path) {}
+```
+-------------------------------------------------
+### 4. SpatialMappingParameters
+*  typedef std::pair<float, float> interval;
+*  enum RESOLUTION {
+            RESOLUTION_HIGH, //< Create a detail geometry, requires lots of memory.
+            RESOLUTION_MEDIUM, //< Smalls variations in the geometry will disappear, useful for big object.
+            RESOLUTION_LOW //< Keeps only huge variations of the geometry , **useful outdoor.**
+        };
+*  enum RANGE {
+            RANGE_NEAR, // Only depth close to the camera will be used by the spatial mapping.
+            RANGE_MEDIUM, //Medium depth range.
+            RANGE_FAR //useful outdoor.
+        };
+```
+SpatialMappingParameters(RESOLUTION resolution = RESOLUTION_HIGH,
+                                 RANGE range = RANGE_MEDIUM,
+                                 int max_memory_usage_ = 2048,
+                                 bool save_texture_ = true,
+                                 bool keep_mesh_consistent_ = true,
+                                 bool inverse_triangle_vertices_order_ = false) {
+            max_memory_usage = max_memory_usage_;
+            save_texture = save_texture_;
+            keep_mesh_consistent = keep_mesh_consistent_;
+            inverse_triangle_vertices_order = inverse_triangle_vertices_order_;
+            set(resolution);
+            set(range);
+```
 
 
 
