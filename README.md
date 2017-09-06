@@ -15,7 +15,7 @@
 *  int camera_image_flip;//是否水平翻转，默认false。
 *  bool camera_disable_self_calib;//默认false,默认自我标定且能够优化。
 *  bool enable_right_side_measure;//默认flase,Defines if right MEASURE should be computed (needed for MEASURE_<XXX>_RIGHT)。
-*  int camera_buffer_count_linux;//只有linux有.减少这个值会减少延迟，但是会增加坏帧。默认为4。
+*  __int camera_buffer_count_linux;__//只有linux有.减少这个值会减少延迟，但是会增加坏帧。默认为4。
 *  int camera_linux_id;//这个用于多个ZED，只有linux。
 *  sl::String svo_input_filename;//路径去记录SVO文件，默认空。
 *  bool svo_real_time_mode;//This mode simulates the live camera and consequently skipped frames if the computation framerate is too slow. default : false
@@ -68,7 +68,27 @@ InitParameters(RESOLUTION camera_resolution_ = RESOLUTION_HD720,
             , depth_stabilization(depth_stabilization_) {}
 ```
  
-### 2. RuntimeParameters
+### 2. RuntimeParameter
+
+___class SL_SDK_EXPORT RuntimeParameters___
+*  SENSING_MODE sensing_mode;//定义深度地图计算方法，更多的参考sl::SENSING_MODE definition。默认：__sl::SENSING_MODE::SENSING_MODE_STANDARD__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 1. Pose
 ```
 class SLSTEREO_EXPORT_DLL Pose:
