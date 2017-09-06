@@ -7,7 +7,8 @@
 ----------------------
 ## Camera.hpp
 ### 1. InitParameters
- _class SL_SDK_EXPORT InitParameters:_
+
+ ___class SL_SDK_EXPORT InitParameters:___
 *  RESOLUTION camera_resolution;//默认 RESOLUTION_HD720。
 *  int camera_fps;//set 0 表示按照默认。
 *  int camera_image_flip;//是否水平翻转，默认false。
