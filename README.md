@@ -90,9 +90,9 @@ RuntimeParameters(SENSING_MODE sensing_mode_ = SENSING_MODE::**SENSING_MODE_STAN
 *  sl::Transform initial_world_transform;//相机一开始运行时的在世界坐标系下的位置默认认为单位矩阵
 *  bool enable_spatial_memory;//使相机能够学习和记住他的环境，有利于纠正运动漂移，和位置。这需要一些资源去跑，但能够有效的改善跟踪精度。建议打开
 *  sl::String area_file_path;//Area localization mode 可以记录和加载一个描述环境的文件
-        \note Loading an area file will start a searching phase during which the camera will try to position itself in the previously learned area.
+        `\note Loading an area file will start a searching phase during which the camera will try to position itself in the previously learned area.
         \warning : The area file describes a specific location. If you are using an area file describing a different location, the tracking function will continuously search for a position and may not find a correct one.
-        \warning The '.area' file can only be used with the same depth mode (sl::MODE) as the one used during area recording.
+        \warning The '.area' file can only be used with the same depth mode (sl::MODE) as the one used during area recording.`
 *  bool save(sl::String filename);
 *  bool load(sl::String filename);
 ```
@@ -104,16 +104,20 @@ TrackingParameters(sl::Transform init_pos = sl::Transform(), bool _enable_memory
 -------------------------------------------------
 ### 4. SpatialMappingParameters
 *  typedef std::pair<float, float> interval;
-*  enum RESOLUTION {
-            RESOLUTION_HIGH, //< Create a detail geometry, requires lots of memory.
-            RESOLUTION_MEDIUM, //< Smalls variations in the geometry will disappear, useful for big object.
-            RESOLUTION_LOW //< Keeps only huge variations of the geometry , **useful outdoor.**
+*  enum RESOLUTION {  
+            1. RESOLUTION_HIGH//0.02米      
+            2. RESOLUTION_MEDIUM//0.05米，默认   
+            3. RESOLUTION_LOW//0.08米   
         };
-*  enum RANGE {
-            RANGE_NEAR, // Only depth close to the camera will be used by the spatial mapping.
-            RANGE_MEDIUM, //Medium depth range.
-            RANGE_FAR //useful outdoor.
-        };
+*  enum RANGE {  
+            RANGE_NEAR, // Only depth close to the camera will be used by the spatial mapping.3.5米  
+            RANGE_MEDIUM, //Medium depth range 0.5米 默认选项   
+            RANGE_FAR //useful outdoor.10米   
+          }；
+`void set(RESOLUTION resolution = RESOLUTION_HIGH) {   //设置函数默认选项是default : RESOLUTION_HIGH
+            resolution_meter = get(resolution);   
+        }`
+
 ```
 SpatialMappingParameters(RESOLUTION resolution = RESOLUTION_HIGH,
                                  RANGE range = RANGE_MEDIUM,
