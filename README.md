@@ -1,14 +1,13 @@
-# ZED
-namespace sl
-{
+# namespace sl
+-----------------------
 1. Core.hpp
 2. Mesh.hpp
 3. define.hpp
 4. Camera.hpp
 5. type.hpp
-}
+-----------------------
 ## Camera.hpp
-
+------------------------
 1. Pose
 ```
 class SLSTEREO_EXPORT_DLL Pose:
