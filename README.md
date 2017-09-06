@@ -7,7 +7,6 @@
 ----------------------
 ## Camera.hpp
 ### 1. InitParameters
-
  ___class SL_SDK_EXPORT InitParameters:___
 
 *  RESOLUTION camera_resolution;//默认 RESOLUTION_HD720。
@@ -67,9 +66,9 @@ InitParameters(RESOLUTION camera_resolution_ = RESOLUTION_HD720,
             , sdk_verbose_log_file(sdk_verbose_log_file_)
             , depth_stabilization(depth_stabilization_) {}
 ```
- 
-### 2. RuntimeParameter
+-----------------------------------------------
 
+### 2. RuntimeParameter
 ___class SL_SDK_EXPORT RuntimeParameters___
 *  SENSING_MODE sensing_mode;//定义深度地图计算方法，更多的参考sl::SENSING_MODE definition。默认：__sl::SENSING_MODE::SENSING_MODE_STANDARD__
 *  REFERENCE_FRAME measure3D_reference_frame;//提供3D测量（点云）的参考坐标系，默认是相机坐标系default is REFERENCE_FRAME_CAMERA
@@ -85,6 +84,11 @@ RuntimeParameters(SENSING_MODE sensing_mode_ = SENSING_MODE::**SENSING_MODE_STAN
             , enable_point_cloud(enable_point_cloud_)
             , measure3D_reference_frame(measure3D_reference_frame_) {}
 ```
+------------------------------------------------
+### 3. TrackingParameters
+**class SL_SDK_EXPORT TrackingParameters**
+*  sl::Transform initial_world_transform;//相机一开始运行时的在世界坐标系下的位置默认认为单位矩阵
+*  bool enable_spatial_memory;//
 
 
 
