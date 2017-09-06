@@ -6,6 +6,11 @@
 1. type.hpp
 ----------------------
 ## Camera.hpp
+1. InitParameters
+class SL_SDK_EXPORT InitParameters {
+*  RESOLUTION camera_resolution;
+
+
 1. Pose
 ```
 class SLSTEREO_EXPORT_DLL Pose:
@@ -32,5 +37,12 @@ inline bool isOpened() {return opene;}
 void close();//关闭相机并且释放内存！
 
 ERROR_CODE grab(RuntimeParameters rt_parameters = RuntimeParameters());
+//抓图->矫正->计算深度，retrieve函数应当在grab之后使用。
 
+RuntimeParameters(SENSING_MODE sensing_mode_ = SENSING_MODE::SENSING_MODE_STANDARD,
+                          bool enable_depth_ = true, bool enable_point_cloud_ = true, REFERENCE_FRAME measure3D_reference_frame_ = REFERENCE_FRAME_CAMERA)
+            : sensing_mode(sensing_mode_)
+            , enable_depth(enable_depth_)
+            , enable_point_cloud(enable_point_cloud_)
+            , measure3D_reference_frame(measure3D_reference_frame_) {}
 ```
