@@ -71,9 +71,20 @@ InitParameters(RESOLUTION camera_resolution_ = RESOLUTION_HD720,
 ### 2. RuntimeParameter
 
 ___class SL_SDK_EXPORT RuntimeParameters___
-*  SENSING_MODE sensing_mode;//定义深度地图计算方法，更多的参考sl::SENSING_MODE definition。默认：`__sl::SENSING_MODE::SENSING_MODE_STANDARD__`
-*  REFERENCE_FRAME measure3D_reference_frame;//提供3D测量（点云）
-
+*  SENSING_MODE sensing_mode;//定义深度地图计算方法，更多的参考sl::SENSING_MODE definition。默认：__sl::SENSING_MODE::SENSING_MODE_STANDARD__
+*  REFERENCE_FRAME measure3D_reference_frame;//提供3D测量（点云）的参考坐标系，默认是相机坐标系default is REFERENCE_FRAME_CAMERA
+*  bool enable_depth;//是否需要计算深度图，默认true。否则只有图像信息
+*  bool enable_point_cloud;//默认计算点云，(including XYZRGBA)目前sdk2.1没有这个选项。
+*  bool save(sl::String filename);//保存配置文件
+*  bool load(sl::String filename);//加载配置文件
+```
+RuntimeParameters(SENSING_MODE sensing_mode_ = SENSING_MODE::**SENSING_MODE_STANDARD**,
+                          bool enable_depth_ = **true**, bool enable_point_cloud_ = **true**, REFERENCE_FRAME measure3D_reference_frame_ = **REFERENCE_FRAME_CAMERA**)
+            : sensing_mode(sensing_mode_)
+            , enable_depth(enable_depth_)
+            , enable_point_cloud(enable_point_cloud_)
+            , measure3D_reference_frame(measure3D_reference_frame_) {}
+```
 
 
 
