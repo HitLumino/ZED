@@ -30,7 +30,7 @@
 *  bool save(sl::String filename);//保存当前配置文件到文档中，路径名
 *  bool load(sl::String filename);//加载配置文件
 ------------------------------------------------
-InitParameters默认构造函数如下
+_InitParameters默认构造函数如下：_
 ```
 InitParameters(RESOLUTION camera_resolution_ = RESOLUTION_HD720,
                        int camera_fps_ = 0,
