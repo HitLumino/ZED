@@ -9,6 +9,7 @@
 ### 1. InitParameters
 
  ___class SL_SDK_EXPORT InitParameters:___
+
 *  RESOLUTION camera_resolution;//默认 RESOLUTION_HD720。
 *  int camera_fps;//set 0 表示按照默认。
 *  int camera_image_flip;//是否水平翻转，默认false。
@@ -23,7 +24,7 @@
 *  float depth_minimum_distance;//根据电脑性能，适当提高。当前默认70cm(-1).
 *  UNIT coordinate_units;//定义度量单位（深度/点云/跟踪/网格），默认米  sl::UNIT::UNIT_MILLIMETER。
 *  COORDINATE_SYSTEM coordinate_system;//定义坐标系，顺序，轴的方向default : sl::COORDINATE_SYSTEM::COORDINATE_SYSTEM_IMAGE。
-*  int sdk_gpu_id;//默认使用gpu(-1)
+*  `int sdk_gpu_id`;//默认使用gpu(-1)
 *  bool sdk_verbose;//提供文字反馈在终端，默认false.
 *  sl::String sdk_verbose_log_file;//log
 *  bool save(sl::String filename);//保存当前配置文件到文档中，路径名
