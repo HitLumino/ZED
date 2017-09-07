@@ -178,11 +178,79 @@ void close();//关闭相机并且释放内存！
 
 *  ERROR_CODE grab(RuntimeParameters rt_parameters = RuntimeParameters());
 //抓图->矫正->计算深度，retrieve函数应当在grab之后使用。
+*  ERROR_CODE retrieveImage(Mat &mat, VIEW view = VIEW_LEFT, MEM type = MEM_CPU, int width = 0, int height = 0);//默认左眼图像，内存类型为CPU。MEM_CPU=1,MEM_GPU=2。
+*  Resolution getResolution();//获取图像分辨率
+*  CUcontext getCUDAContext();//The CUDA context created by the inner process.
+*  CameraInformation getCameraInformation(Resolution resizer = Resolution(0, 0));//返回相机内参/外参 calibration_parameters。
+*  int getCameraSettings(CAMERA_SETTINGS setting);//相机设置，比如饱和度/亮度/曝光等 -1表示有错误
+*  void setCameraSettings(**CAMERA_SETTINGS settings**, int value, bool use_default = false);//value 是相应的控制模式
+*  float getCameraFPS();//-1表有错误
+*  void setCameraFPS(int desired_fps);
+*  float getCurrentFPS();//获取当前帧率，比如回调函数
+*  timeStamp getCameraTimestamp();
+*  timeStamp getCurrentTimestamp();
+*  unsigned int getFrameDroppedCount();//返回丢失的帧数
+*  int getSVOPosition();//返回当前SVO文件位置，只用于调用SVO文件时
+*  void setSVOPosition(int frame_number);//设置SV0的位置，参数是所希望的帧数
+*  int getSVONumberOfFrames();//返回当前文件里的帧数
 
-RuntimeParameters(SENSING_MODE sensing_mode_ = SENSING_MODE::SENSING_MODE_STANDARD,
-                          bool enable_depth_ = true, bool enable_point_cloud_ = true, REFERENCE_FRAME measure3D_reference_frame_ = REFERENCE_FRAME_CAMERA)
-            : sensing_mode(sensing_mode_)
-            , enable_depth(enable_depth_)
-            , enable_point_cloud(enable_point_cloud_)
-            , measure3D_reference_frame(measure3D_reference_frame_) {}
+**有关深度函数：**
+*  ERROR_CODE retrieveMeasure(Mat &mat, MEASURE measure = MEASURE_DEPTH, MEM type = MEM_CPU, int width = 0, int height = 0);//取回数据函数，默认深度信息，默认CPU内存占用。
+*  float getDepthMaxRangeValue();//返回可以计算最大深度值
+*  void setDepthMaxRangeValue(float depth_max_range);//Sets the maximum distance of depth/disparity estimation 
+*  float getDepthMinRangeValue();
+*  int getConfidenceThreshold();//自信度阈值，0-100
+*  void setConfidenceThreshold(int conf_threshold_value);
+
+**Positional Tracking functions:**
+*  ERROR_CODE enableTracking(TrackingParameters tracking_parameters = TrackingParameters());//开始跟踪
+*  sl::TRACKING_STATE getPosition(**sl::Pose &camera_pose**, REFERENCE_FRAME reference_frame = sl::REFERENCE_FRAME_WORLD);//返回跟踪状态；The camera frame在左眼后面；camera_pose [out]：包含相机位置以及时间戳和自信度；reference_frame :默认世界坐标系
+*  sl::AREA_EXPORT_STATE getAreaExportState();//Returns the state of the spatial memory export process
+*  void disableTracking(sl::String area_file_path = "");
+*  ERROR_CODE resetTracking(sl::Transform &path);//重置，重新初始化路径，和变换矩阵。UI有个按钮。
+
+**Spatial Mapping functions:**
+The spatial mapping will create a geometric representation of the scene based on both tracking data and 3D point clouds.
+*  ERROR_CODE enableSpatialMapping(SpatialMappingParameters spatial_mapping_parameters = SpatialMappingParameters());
+*  SPATIAL_MAPPING_STATE getSpatialMappingState();//The current state of the spatial mapping process
+*  void requestMeshAsync();//
+*  ERROR_CODE getMeshRequestStatusAsync();
+*  ERROR_CODE retrieveMeshAsync(sl::Mesh &mesh);//Retrieves the generated mesh after calling requestMeshAsync.输出网格
+*  ERROR_CODE extractWholeMesh(sl::Mesh &mesh);
+*  void pauseSpatialMapping(bool status);
+*  void disableSpatialMapping();
+
+**Self calibration :**
+*  SELF_CALIBRATION_STATE getSelfCalibrationState();//返回自标定状态，有未开始/已经运行/结束但未处理好数据，用的上一次数据/成功
+*  void resetSelfCalibration();//It will reset and calculate again correction for misalignment, convergence and color mismatch.这将重置并重新计算校正偏差，收敛和颜色不匹配。
+
+**Specific When Recording mode is activated**
+*  ERROR_CODE enableRecording(sl::String video_filename, SVO_COMPRESSION_MODE compression_mode = SVO_COMPRESSION_MODE_LOSSLESS);// video_filename : can be a *.svo* file or a *.avi* file;compression_mode : can be one of the sl::SVO_COMPRESSION_MODE enum
+*  sl::RecordingState record();
+*  void disableRecording();
+**(static)**
+*  static sl::String getSDKVersion();
+*  static int isZEDconnected();
+*  static sl::ERROR_CODE sticktoCPUCore(int cpu_core);//only jetson
 ```
+private:
+        ERROR_CODE openCamera(bool);
+        bool nextImage(bool);
+        int initMemory();
+        bool initRectifier();
+        CameraMemberHandler *h = 0;
+        bool opened = false;
+```
+*  SL_SDK_EXPORT bool saveDepthAs(sl::Camera &zed, sl::DEPTH_FORMAT format, sl::String name, float factor = 1.);//zed : the current camera object.
+*  SL_SDK_EXPORT bool saveDepthAs(sl::Mat &depth, sl::DEPTH_FORMAT format, sl::String name, float factor = 1.);//depth : the depth map to record (CPU 32F_C1 sl::Mat)
+*  SL_SDK_EXPORT bool savePointCloudAs(sl::Camera &zed, sl::POINT_CLOUD_FORMAT format, sl::String name, bool with_color = false, bool keep_occluded_point = false);//cloud : the point cloud to record (CPU 32F_C4 sl::Mat)
+*  SL_SDK_EXPORT bool savePointCloudAs(sl::Mat &cloud, sl::POINT_CLOUD_FORMAT format, sl::String name, bool with_color = false, bool keep_occluded_point = false);
+`#endif /* __CAMERA_HPP__ */`
+
+
+
+
+
+
+
+
