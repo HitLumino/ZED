@@ -4,15 +4,362 @@
 1. define.hpp
 1. Camera.hpp
 1. type.hpp
+
 ----------------------
-## Define.hpp
+## Core.hpp
+### namespace sl{
+####  static inline timeStamp getCurrentTimeStamp() //当前时间戳 ns，比较当前时间戳与相机时间戳</br>
+   {    timeStamp current_ts = 0ULL;</br>
+        timeStamp NSEC_PER_SEC = 1000000000ULL;}</br>
+#### struct Resolution//分辨率结构体，含有构造函数
 ```
+struct Resolution {
+        size_t width; /**< array width in pixels  */
+        size_t height; /**< array height in pixels*/
+
+        Resolution(size_t w_ = 0, size_t h_ = 0) {
+            width = w_;
+            height = h_;
+        }
+```
+#### size_t area() //计算区域面积{return width * height;}
+####  struct CameraParameters //相机参数
+```
+struct CameraParameters {
+        float fx; /**< Focal length in pixels along x axis. */
+        float fy; /**< Focal length in pixels along y axis. */
+        float cx; /**< Optical center along x axis, defined in pixels (usually close to width/2). */
+        float cy; /**< Optical center along y axis, defined in pixels (usually close to height/2). */
+        double disto[5]; /**< Distortion factor : [ k1, k2, p1, p2, k3 ]. Radial (k1,k2,k3) and Tangential (p1,p2) distortion.畸变系数5个*/
+        float v_fov; /**< Vertical field of view after stereo rectification, in degrees. */
+        float h_fov; /**< Horizontal field of view after stereo rectification, in degrees.*/
+        float d_fov; /**< Diagonal field of view after stereo rectification, in degrees.*/
+        Resolution image_size; /** size in pixels of the images given by the camera.*/
+
+        /**
+        \brief Setups the parameter of a camera.
+        \param focal_x : horizontal focal length.
+        \param focal_y : vertical focal length.
+        \param focal_x : horizontal optical center.
+        \param focal_x : vertical optical center.
+        */
+        void SetUp(float focal_x, float focal_y, float center_x, float center_y) {
+            fx = focal_x;
+            fy = focal_y;
+            cx = center_x;
+            cy = center_y;
+        }
+    };//fx,fy,cx,cy 必须一致，一旦相机打开 once sl::Camera::open has been called.
+void SetUp(float focal_x, float focal_y, float center_x, float center_y) {
+            fx = focal_x;
+            fy = focal_y;
+            cx = center_x;
+            cy = center_y;
+        }
+```
+#### struct CalibrationParameters //相机标定参数包含R/T，以及左右相机相机参数
+```
+struct CalibrationParameters {
+        sl::float3 R; /**< Rotation (using Rodrigues' transformation) between the two sensors. Defined as 'tilt', 'convergence' and 'roll'.*/
+        sl::float3 T; /**< Translation between the two sensors. T.x is the distance between the two cameras (baseline) in the sl::UNIT chosen during sl::Camera::open (mm, cm, meters, inches...).*/
+        CameraParameters left_cam; /**< Intrinsic parameters of the left camera  */
+        CameraParameters right_cam; /**< Intrinsic parameters of the right camera  */
+    };
+```
+#### struct CameraInformation//相机信息
+```
+struct CameraInformation {
+        CalibrationParameters calibration_parameters; /**< Intrinsic and Extrinsic stereo parameters for rectified images (default).  */
+        CalibrationParameters calibration_parameters_raw; /**< Intrinsic and Extrinsic stereo parameters for original images (unrectified).  */
+        unsigned int serial_number = 0; /**< camera dependent serial number.  */
+        unsigned int firmware_version = 0; /**< current firmware version of the camera. */
+    };
+```
+#### enum MEM
+```
+ enum MEM {
+        MEM_CPU = 1, /**< CPU Memory (Processor side).*/
+        MEM_GPU = 2 /**< GPU Memory (Graphic card side).*/
+    };
+```
+#### enum COPY_TYPE//GPU CPU 之间传数据
+```
+enum COPY_TYPE {
+        COPY_TYPE_CPU_CPU, /**< copy data from CPU to CPU.*/
+        COPY_TYPE_CPU_GPU, /**< copy data from CPU to GPU.*/
+        COPY_TYPE_GPU_GPU, /**< copy data from GPU to GPU.*/
+        COPY_TYPE_GPU_CPU /**< copy data from GPU to CPU.*/
+    };
+```
+####enum MAT_TYPE 
+```
+enum MAT_TYPE {
+        MAT_TYPE_32F_C1, /**< float 1 channel.*/
+        MAT_TYPE_32F_C2, /**< float 2 channels.*/
+        MAT_TYPE_32F_C3, /**< float 3 channels.*/
+        MAT_TYPE_32F_C4, /**< float 4 channels.*/
+        MAT_TYPE_8U_C1, /**< unsigned char 1 channel.*/
+        MAT_TYPE_8U_C2, /**< unsigned char 2 channels.*/
+        MAT_TYPE_8U_C3, /**< unsigned char 3 channels.*/
+        MAT_TYPE_8U_C4 /**< unsigned char 4 channels.*/
+    };
+```
+
+####  class SL_CORE_EXPORT Mat //处理矩阵１－４通道，Ｍat类型是行优先存储，如果使用gpu，必须在结束前调用sl::Mat::free()，cuda编程里会有涉及到。
+##### private:
+* Resolution size;
+* size_t channels = 0;
+* size_t step_gpu = 0;
+* size_t step_cpu = 0;
+* size_t pixel_bytes = 0;
+* MAT_TYPE data_type;
+* MEM mem_type = sl::MEM_CPU;
+* uchar1 *ptr_cpu = NULL;//指向CPU
+* uchar1 *ptr_gpu = NULL;//指向GPU
+* bool init = false;//Ｍat是否初始化
+* bool memory_owner = false;//内存是否分配或释放
+* int castSLMat();</br>
+##### public:
+* Mat();
+* Mat(size_t width, size_t height, MAT_TYPE mat_type, MEM memory_type = MEM_CPU);//This function directly allocates the requested memory. It calls Mat::alloc.直接分配内存
+* Mat(size_t width, size_t height, MAT_TYPE mat_type, sl::uchar1 *ptr, size_t step, MEM memory_type = MEM_CPU);//不分配内存空间，step : step of the data array. (**步长：一行像素大小**)
+* Mat(size_t width, size_t height, MAT_TYPE mat_type, sl::uchar1 *ptr_cpu, size_t step_cpu, sl::uchar1 *ptr_gpu, size_t step_gpu);//Mat constructor from two existing data pointers, CPU and GPU.不分配内存
+* Mat(sl::Resolution resolution, MAT_TYPE mat_type, MEM memory_type = MEM_CPU);//**参数直接是分辨率，即告知width,height**
+* Mat(sl::Resolution resolution, MAT_TYPE mat_type, sl::uchar1 *ptr, size_t step, MEM memory_type = MEM_CPU);
+* Mat(sl::Resolution resolution, MAT_TYPE mat_type, sl::uchar1 *ptr_cpu, size_t step_cpu, sl::uchar1 *ptr_gpu, size_t step_gpu);
+* Mat(const sl::Mat &mat);//**复制构造函数**
+* void alloc(size_t width, size_t height, MAT_TYPE mat_type, MEM memory_type = MEM_CPU);//分配内存函数
+* void alloc(sl::Resolution resolution, MAT_TYPE mat_type, MEM memory_type = MEM_CPU);//同上
+* ~Mat();//析构函数
+* void free(MEM memory_type = MEM_CPU | MEM_GPU);
+* Mat &operator=(const Mat &that);
+* ERROR_CODE updateCPUfromGPU();//从GPU下载数据到CPU
+* ERROR_CODE updateGPUfromCPU();//Uploads data from HOST (CPU) to DEVICE (GPU), if possible
+* ERROR_CODE copyTo(Mat &dst, COPY_TYPE cpyType = COPY_TYPE_CPU_CPU) const;// Copies data an other Mat (deep copy).
+* ERROR_CODE setFrom(const Mat &src, COPY_TYPE cpyType = COPY_TYPE_CPU_CPU);//Copies data from an other Mat (deep copy).
+* ERROR_CODE read(const char* filePath);// Reads an image from a file (only if sl::MEM_CPU is available on the current sl::Mat).
+* ERROR_CODE write(const char* filePath);//写
+* ERROR_CODE setTo(T value, MEM memory_type = MEM_CPU);//Fills the Mat with the given value.
+* ERROR_CODE setValue(size_t x, size_t y, N value, MEM memory_type = MEM_CPU);//Sets a value to a specific point in the matrix在矩阵中指定位置设定值，不能用于MEM_GPU
+* ERROR_CODE getValue(size_t x, size_t y, N *value, MEM memory_type = MEM_CPU) const;//返回那个点（x,y）值。
+```
+inline size_t getWidth() const {
+            return size.width;
+        }  
+inline size_t getHeight() const {
+            return size.height;
+        }
+inline Resolution getResolution() const {
+            return size;
+        }
+inline size_t getChannels() const {
+            return channels;
+        }
+inline MAT_TYPE getDataType() const {
+            return data_type;
+        }
+inline MEM getMemoryType() const {
+            return mem_type;
+        }
+
+inline size_t getStepBytes(MEM memory_type = MEM_CPU) const {
+            switch (memory_type) {
+                case MEM_CPU:
+                return step_cpu;
+                case MEM_GPU:
+                return step_gpu;
+            }//根据类型不同，获得步长所占空间（一行像素）不同类型，所占字节不一样。
+            return 0;
+        }
+
+template <typename N>
+inline size_t getStep(MEM memory_type = MEM_CPU) const {
+            return getStepBytes(memory_type) / sizeof(N);
+        }//返回不同类型，一行元素字节内存里所存在的步数
+
+inline size_t getStep(MEM memory_type = MEM_CPU)const {
+            switch (data_type) {
+                case sl::MAT_TYPE_32F_C1:
+                return getStep<sl::float1>(memory_type);
+                case sl::MAT_TYPE_32F_C2:
+                return getStep<sl::float2>(memory_type);
+                case sl::MAT_TYPE_32F_C3:
+                return getStep<sl::float3>(memory_type);
+                case sl::MAT_TYPE_32F_C4:
+                return getStep<sl::float4>(memory_type);
+                case sl::MAT_TYPE_8U_C1:
+                return getStep<sl::uchar1>(memory_type);
+                case sl::MAT_TYPE_8U_C2:
+                return getStep<sl::uchar2>(memory_type);
+                case sl::MAT_TYPE_8U_C3:
+                return getStep<sl::uchar3>(memory_type);
+                case sl::MAT_TYPE_8U_C4:
+                return getStep<sl::uchar4>(memory_type);
+            }//返回步数
+            return 0;
+        }
+inline size_t getPixelBytes() const {
+            return pixel_bytes;//返回像素所占字节大小
+        }
+
+inline size_t getWidthBytes() const {
+            return pixel_bytes * size.width;
+        }
+        /**
+        *  brief Return the informations about the Mat into a sl::String.
+        * \return A string containing the Mat informations.
+        */
+        sl::String getInfos();
+
+inline bool isInit() const {
+            return init;
+        }//是否初始化
+
+inline bool isMemoryOwner() const {
+            return memory_owner;
+        }//内存是否分配
+template <typename N> 
+  N *getPtr(MEM memory_type = MEM_CPU) const;//getPtr//获得指针
+```
+* ERROR_CODE clone(const Mat &src);
+* ERROR_CODE move(Mat &dst);
+* static void swap(sl::Mat &mat1, sl::Mat &mat2);
+------------------------
+#### Rotation
+**class SL_CORE_EXPORT Rotation;**
+Rotation: public Matrix3f {
+* Rotation();
+* Rotation(const Rotation &rotation);
+* Rotation(const Matrix3f &mat);//复制构造函数
+* Rotation(const Orientation &orientation);//Orientation ------> the Rotation one.
+* Rotation(const float angle, const Translation &axis);//转了多少角，绕轴
+* void setOrientation(const Orientation &orientation);
+* Orientation getOrientation() const;//获取方位
+* sl::float3 getRotationVector();
+* void setRotationVector(const sl::float3 &vec_rot);
+* sl::float3 getEulerAngles(bool radian = true) const;//欧拉角
+* void setEulerAngles(const sl::float3 &euler_angles, bool radian = true);
+---------------------------------
+#### Translation
+**class SL_CORE_EXPORT Translation: public sl::float3 {**
+* Translation();
+* Translation(const Translation &translation);
+* Translation(float t1, float t2, float t3);
+* Translation(sl::float3 in);//向量
+* Translation operator*(const Orientation &mat) const;//经过一次方位角变换后的位移
+* void normalize();//单位化
+* static Translation normalize(const Translation &tr);
+* float &operator()(int x);//获取x值
+#### Orientation 四元素 
+sl::Orientation is a vector defined as [ox, oy, oz, ow].
+__class SL_CORE_EXPORT Orientation: public sl::float4 {__
+* Orientation();
+* Orientation(const Orientation &orientation);
+* Orientation(const sl::float4 &in);
+* Orientation(const Rotation &rotation);//converts the Rotation representation to the Orientation one.
+* Orientation(const Translation &tr1, const Translation &tr2);//point1  point2 之间变换算四元素
+* float operator()(int x);//返回x值
+* Orientation operator*(const Orientation &orientation) const;
+* void setRotationMatrix(const Rotation &rotation);//Sets the orientation from a Rotation.
+* Rotation getRotationMatrix() const;//return The rotation computed from the orientation data
+* void setIdentity();//设置为1
+* static Orientation identity();//
+* void setZeros();
+* static Orientation zeros();
+* void normalise();
+* static Orientation normalise(const Orientation &orient);
+--------------------------------
+#### Transform 4x4
+__class SL_CORE_EXPORT Transform: public Matrix4f__
+* Transform();
+* Transform(const Transform &motion);
+* Transform(const Matrix4f &mat);
+* Transform(const Rotation &rotation, const Translation &translation);//R,T
+* Transform(const Orientation &orientation, const Translation &translation);//四元素+T
+* void setRotationMatrix(const Rotation &rotation);//设置旋转矩阵
+* __Rotation getRotationMatrix() const;__//从T中获取R
+* void setTranslation(const Translation &translation);
+* __Translation getTranslation() const;__
+* void setOrientation(const Orientation &orientation);
+* __Orientation getOrientation() const;__
+* __sl::float3 getRotationVector();__
+* void setRotationVector(const sl::float3 &vec_rot);
+* __sl::float3 getEulerAngles(bool radian = true) const;__
+* void setEulerAngles(const sl::float3 &euler_angles, bool radian = true);
+-----------------------------
+#### TextureImage
+```
+class SL_CORE_EXPORT TextureImage {
+    public:
+        TextureImage(sl::Mat &img_, sl::Transform &path_);//构造函数，图像数据+变换矩阵
+        ~TextureImage() { img.free(); }//用GPU
+        inline void clear() { img.free(); }
+        sl::Mat img;
+        sl::Transform path;
+    };
+```
+#### TextureImagePool
+```
+class SL_CORE_EXPORT TextureImagePool {
+    public:
+        TextureImagePool() {}
+        ~TextureImagePool() { clear(); }
+        std::vector<TextureImage> v;
+        int size() { return (int) v.size(); }
+        void stack(sl::Mat &image, sl::Transform &path);
+        void concat(const TextureImagePool &that);
+        TextureImagePool &operator=(const TextureImagePool &that);
+        void clear();
+    private:
+        std::mutex mtx;
+    };
+```
+
+-----------------------
+## Define.hpp
+
+```
+#ifndef __DEFINES_HPP__
+#define __DEFINES_HPP__
+
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+#ifdef _WIN32
+#include <Windows.h>
+#include <direct.h>
+#else /* _WIN32 */
+#include <limits>
+#include <unistd.h>
+#endif /* _WIN32 */
+
+#if defined WIN32
+#if defined(SL_SDK_COMPIL)
+#define SL_SDK_EXPORT __declspec(dllexport)
+#else
+#define SL_SDK_EXPORT
+#endif
+#elif __GNUC__
+#define SL_SDK_EXPORT __attribute__((visibility("default")))
+#if defined(__arm__) || defined(__aarch64__)
+#define _SL_JETSON_
+#endif
+#endif
+
+// SDK VERSION NUMBER
+const int ZED_SDK_MAJOR_VERSION = 2;
+const int ZED_SDK_MINOR_VERSION = 1;
+const int ZED_SDK_PATCH_VERSION = 2;
+
 namespace sl {
 
     ///@{
     ///  @name Unavailable Values
     /**
-    Defines an unavailable depth value that is above the depth Max value.
+    超过设定范围的值最大值就设置为无穷大
     */
     static const float TOO_FAR = INFINITY;
     /**
@@ -25,7 +372,7 @@ namespace sl {
     static const float OCCLUSION_VALUE = NAN;
     ///@}
 
-    //macro to detect wrong data measure
+    //macro to detect wrong data measure宏来检测错误数据
 #define isValidMeasure(v) (std::isfinite(v))
 
     /// \defgroup Enumerations Public enumerations
@@ -35,7 +382,7 @@ namespace sl {
     \ingroup Enumerations
     \brief Represents the available resolution defined in sl::cameraResolution.
     \note Since v1.0, RESOLUTION_VGA mode has been updated to WVGA (from 640*480 to 672*376) and requires a firmware update to function (>= 1142). Firmware can be updated in the ZED Explorer.
-    \warning NVIDIA Jetson X1 only supports RESOLUTION_HD1080@15, RESOLUTION_HD720@30/15, and RESOLUTION_VGA@60/30/15.
+    \warning NVIDIA Jetson X1 only supports RESOLUTION_HD1080@15, RESOLUTION_HD720@30/15, and RESOLUTION_VGA@60/30/15.英伟达TX1只支持这几种分辨率
     */
     enum RESOLUTION {
         RESOLUTION_HD2K, /**< 2208*1242, available framerates: 15 fps.*/
@@ -52,8 +399,8 @@ namespace sl {
     \brief Each enum defines one of those settings.
     */
     enum CAMERA_SETTINGS {
-        CAMERA_SETTINGS_BRIGHTNESS, /**< Defines the brightness control. Affected value should be between 0 and 8.*/
-        CAMERA_SETTINGS_CONTRAST, /**< Defines the contrast control. Affected value should be between 0 and 8.*/
+        CAMERA_SETTINGS_BRIGHTNESS, /**< brightness control. 0-8*/
+        CAMERA_SETTINGS_CONTRAST, /**<  contrast control. 0-8.*/
         CAMERA_SETTINGS_HUE, /**< Defines the hue control. Affected value should be between 0 and 11.*/
         CAMERA_SETTINGS_SATURATION, /**< Defines the saturation control. Affected value should be between 0 and 8.*/
         CAMERA_SETTINGS_GAIN, /**< Defines the gain control. Affected value should be between 0 and 100 for manual control. If ZED_EXPOSURE is set to -1, the gain is in auto mode too.*/
@@ -64,7 +411,7 @@ namespace sl {
     };
 
     /**
-    \enum SELF_CALIBRATION_STATE
+    \enum SELF_CALIBRATION_STATE相机自标定过程状态反馈：未开启/....
     \ingroup Enumerations
     \brief Status for self calibration. Since v0.9.3, self-calibration is done in background and start in the sl::Camera::open or Reset function.
     \brief You can follow the current status for the self-calibration any time once ZED object has been construct.
@@ -83,28 +430,28 @@ namespace sl {
     \brief List available depth computation modes.
     */
     enum DEPTH_MODE {
-        DEPTH_MODE_NONE, /**< This mode does not compute any depth map. Only rectified stereo images will be available.*/
-        DEPTH_MODE_PERFORMANCE, /**< Fastest mode for depth computation.*/
-        DEPTH_MODE_MEDIUM, /**< Balanced quality mode. Depth map is robust in any environment and requires medium resources for computation.*/
-        DEPTH_MODE_QUALITY, /**< Best quality mode. Requires more compute power.*/
+        DEPTH_MODE_NONE, /**不计算深度，只有图像.*/
+        DEPTH_MODE_PERFORMANCE, /**< 最快的深度计算.*/
+        DEPTH_MODE_MEDIUM, /**< 平衡模式. Depth map is robust in any environment and requires medium resources for computation.*/
+        DEPTH_MODE_QUALITY, /**< 质量最好. Requires more compute power.*/
         DEPTH_MODE_LAST
     };
 
     /**
-    \enum SENSING_MODE
+    \enum SENSING_MODE深度感知模式
     \ingroup Enumerations
     \brief List available depth sensing modes.
     */
     enum SENSING_MODE {
         SENSING_MODE_STANDARD, /**< This mode outputs ZED standard depth map that preserves edges and depth accuracy.
-                               * Applications example: Obstacle detection, Automated navigation, People detection, 3D reconstruction.*/
-        SENSING_MODE_FILL, /**< This mode outputs a smooth and fully dense depth map.
+                               * Applications example: Obstacle detection, Automated navigation, People detection, 3D reconstruction.标准ZED地图模式，感知边缘和深度，应用于障碍物检测，自动导航，人群检测，3维重建*/
+        SENSING_MODE_FILL, /**< This mode outputs a smooth and fully dense depth map.输出更加平滑和稠密的深度地图
                            * Applications example: AR/VR, Mixed-reality capture, Image post-processing.*/
         SENSING_MODE_LAST
     };
 
     /**
-    \enum UNIT
+    \enum UNIT单位默认米
     \ingroup Enumerations
     \brief List available unit for measures.
     */
@@ -117,7 +464,7 @@ namespace sl {
         UNIT_LAST
     };
 
-    /**
+    /**坐标系方向选择
     \enum COORDINATE_SYSTEM
     \ingroup Enumerations
     \brief List available coordinates systems for positional tracking and 3D measures.
@@ -140,7 +487,7 @@ namespace sl {
         MEASURE_DISPARITY, /**< Disparity map, sl::MAT_TYPE_32F_C1.*/
         MEASURE_DEPTH, /**< Depth map, sl::MAT_TYPE_32F_C1.*/
         MEASURE_CONFIDENCE, /**< Certainty/confidence of the disparity map, sl::MAT_TYPE_32F_C1.*/
-        MEASURE_XYZ, /**< Point cloud, sl::MAT_TYPE_32F_C4, channel 4 is empty.*/
+        MEASURE_XYZ, /**< Point cloud, sl::MAT_TYPE_32F_C4, channel 4 is empty.四通道*/
         MEASURE_XYZRGBA, /**< Colored point cloud,  sl::MAT_TYPE_32F_C4, channel 4 contains color in R-G-B-A order.*/
         MEASURE_XYZBGRA, /**< Colored point cloud,  sl::MAT_TYPE_32F_C4, channel 4 contains color in B-G-R-A order.*/
         MEASURE_XYZARGB, /**< Colored point cloud,  sl::MAT_TYPE_32F_C4, channel 4 contains color in A-R-G-B order.*/
@@ -158,20 +505,20 @@ namespace sl {
     };
 
     /**
-    \enum VIEW
+    \enum VIEW视野
     \ingroup Enumerations
     \brief List available views.
     */
     enum VIEW {
         VIEW_LEFT, /**< Left RGBA image, sl::MAT_TYPE_8U_C4. */
         VIEW_RIGHT, /**< Right RGBA image, sl::MAT_TYPE_8U_C4. */
-        VIEW_LEFT_GRAY, /**< Left GRAY image, sl::MAT_TYPE_8U_C1. */
-        VIEW_RIGHT_GRAY, /**< Right GRAY image, sl::MAT_TYPE_8U_C1. */
-        VIEW_LEFT_UNRECTIFIED, /**< Left RGBA unrectified image, sl::MAT_TYPE_8U_C4. */
+        VIEW_LEFT_GRAY, /**< Left GRAY image, sl::MAT_TYPE_8U_C1. 左灰度图*/
+        VIEW_RIGHT_GRAY, /**< Right GRAY image, sl::MAT_TYPE_8U_C1.右灰度图 */
+        VIEW_LEFT_UNRECTIFIED, /**< Left RGBA unrectified image, sl::MAT_TYPE_8U_C4. 未矫正*/
         VIEW_RIGHT_UNRECTIFIED,/**< Right RGBA unrectified image, sl::MAT_TYPE_8U_C4. */
         VIEW_LEFT_UNRECTIFIED_GRAY, /**< Left GRAY unrectified image, sl::MAT_TYPE_8U_C1. */
         VIEW_RIGHT_UNRECTIFIED_GRAY,/**< Right GRAY unrectified image, sl::MAT_TYPE_8U_C1. */
-        VIEW_SIDE_BY_SIDE, /**< Left and right image (the image width is therefore doubled). RGBA image, sl::MAT_TYPE_8U_C4. */
+        VIEW_SIDE_BY_SIDE, /**< Left and right image (width is therefore doubled). RGBA image, sl::MAT_TYPE_8U_C4. */
         VIEW_DEPTH, /**< Color rendering of the depth, sl::MAT_TYPE_8U_C4. */
         VIEW_CONFIDENCE, /**< Color rendering of the depth confidence, sl::MAT_TYPE_8U_C4. */
         VIEW_NORMALS, /**< Color rendering of the normals, sl::MAT_TYPE_8U_C4. */
@@ -181,7 +528,7 @@ namespace sl {
     };
 
     /**
-    \enum DEPTH_FORMAT
+    \enum DEPTH_FORMAT  深度图的格式
     \ingroup Enumerations
     \brief List available file formats for saving depth maps.
     */
@@ -193,48 +540,48 @@ namespace sl {
     };
 
     /**
-    \enum POINT_CLOUD_FORMAT
+    \enum POINT_CLOUD_FORMAT  点云图格式
     \ingroup Enumerations
     \brief List available file formats for saving point clouds. Stores the spatial coordinates (x,y,z) of each pixel and optionally its RGB color.
     */
     enum POINT_CLOUD_FORMAT {
-        POINT_CLOUD_FORMAT_XYZ_ASCII, /**< Generic point cloud file format, without color information.*/
-        POINT_CLOUD_FORMAT_PCD_ASCII, /**< Point Cloud Data file, with color information.*/
+        POINT_CLOUD_FORMAT_XYZ_ASCII, /**< Generic point cloud file format, without color information.没有颜色信息*/
+        POINT_CLOUD_FORMAT_PCD_ASCII, /**< Point Cloud Data file, with color information.有颜色信息*/
         POINT_CLOUD_FORMAT_PLY_ASCII, /**< PoLYgon file format, with color information.*/
         POINT_CLOUD_FORMAT_VTK_ASCII, /**< Visualization ToolKit file, without color information.*/
         POINT_CLOUD_FORMAT_LAST
     };
 
     /**
-    \enum TRACKING_STATE
+    \enum TRACKING_STATE 跟踪状态
     \ingroup Enumerations
     \brief List the different states of positional tracking.
     */
     enum TRACKING_STATE {
-        TRACKING_STATE_SEARCHING, /**< The camera is searching for a previously known position to locate itself.*/
+        TRACKING_STATE_SEARCHING, /**< The camera is searching for a previously known position to locate itself.搜索之前已知位置去定位自己*/
         TRACKING_STATE_OK, /**< Positional tracking is working normally.*/
         TRACKING_STATE_OFF, /**< Positional tracking is not enabled.*/
-        TRACKING_STATE_FPS_TOO_LOW, /**< Effective FPS is too low to give proper results for motion tracking. Consider using PERFORMANCES parameters (DEPTH_MODE_PERFORMANCE, low camera resolution (VGA,HD720))*/
+        TRACKING_STATE_FPS_TOO_LOW, /**帧率太低警告< Effective FPS is too low to give proper results for motion tracking. Consider using PERFORMANCES parameters (DEPTH_MODE_PERFORMANCE, low camera resolution (VGA,HD720))*/
         TRACKING_STATE_LAST
     };
 
     /**
-    \enum AREA_EXPORT_STATE
+    \enum AREA_EXPORT_STATE  spacial memory 状态
     \ingroup Enumerations
     \brief List the different states of spatial memory area export.
     */
     enum AREA_EXPORT_STATE {
-        AREA_EXPORT_STATE_SUCCESS, /**< The spatial memory file has been successfully created.*/
+        AREA_EXPORT_STATE_SUCCESS, /**< The spatial memory file has been successfully created.成功创建*/
         AREA_EXPORT_STATE_RUNNING, /**< The spatial memory is currently written.*/
         AREA_EXPORT_STATE_NOT_STARTED, /**< The spatial memory file exportation has not been called.*/
-        AREA_EXPORT_STATE_FILE_EMPTY, /**< The spatial memory contains no data, the file is empty.*/
-        AREA_EXPORT_STATE_FILE_ERROR, /**< The spatial memory file has not been written because of a wrong file name.*/
+        AREA_EXPORT_STATE_FILE_EMPTY, /**< The spatial memory contains no data, the file is empty. 空 */
+        AREA_EXPORT_STATE_FILE_ERROR, /**< The spatial memory file has not been written because of a wrong file name.错误路径*/
         AREA_EXPORT_STATE_SPATIAL_MEMORY_DISABLED, /**< The spatial memory learning is disable, no file can be created.*/
         AREA_EXPORT_STATE_LAST
     };
 
     /**
-    \enum REFERENCE_FRAME
+    \enum REFERENCE_FRAME 参考坐标系:世界/相机
     \ingroup Enumerations
     \brief Define which type of position matrix is used to store camera path and pose.
     */
@@ -245,7 +592,7 @@ namespace sl {
     };
 
     /**
-    \enum SPATIAL_MAPPING_STATE
+    \enum SPATIAL_MAPPING_STATE SPATIAL_MAPPING 状态显示
     \ingroup Enumerations
     \brief Gives the spatial mapping state.
     */
@@ -259,7 +606,7 @@ namespace sl {
     };
 
     /**
-    \enum SVO_COMPRESSION_MODE
+    \enum SVO_COMPRESSION_MODE 压缩模式
     \ingroup Enumerations
     \brief List available compression modes for SVO recording.
     \brief sl::SVO_COMPRESSION_MODE_LOSSLESS is an improvement of previous lossless compression (used in ZED Explorer), even if size may be bigger, compression time is much faster.
@@ -272,7 +619,7 @@ namespace sl {
     };
 
     /**
-    \struct RecordingState
+    \struct RecordingState 记录SVO文件的结构体，包含当前压缩时间/压缩率等
     \brief Recording structure that contains information about SVO.
     */
     struct RecordingState {
@@ -284,7 +631,7 @@ namespace sl {
     };
 
     ///@{
-    ///  @name ZED Camera Resolution
+    ///  @name ZED Camera Resolution分辨率 pair类型
     /**
     Available video modes for the ZED camera.
     */
@@ -300,7 +647,7 @@ namespace sl {
 
     ///@{
     ///  @name Enumeration conversion
-    /*!
+    /*!将状态化为字符串输出
     \ingroup Functions
     \brief Converts the given RESOLUTION into a string
     \param res : a specific RESOLUTION
@@ -332,7 +679,7 @@ namespace sl {
     }
 
     /*!
-    \ingroup Functions
+    \ingroup Functions将状态化为字符串输出
     \brief Converts the given SELF_CALIBRATION_STATE into a string
     \param state : a specific SELF_CALIBRATION_STATE
     \return The corresponding string
@@ -363,7 +710,7 @@ namespace sl {
     }
 
     /*!
-    \ingroup Functions
+    \ingroup Functions str2mode(std::string mode)字符串转mode,枚举类型
     \brief Converts the given string into a DEPTH_MODE
     \param mode : a specific depth
     \return The corresponding DEPTH_MODE
@@ -556,11 +903,17 @@ namespace sl {
         }
         return output;
     }
-}
+    ///@}
+};
+
+#endif /*__DEFINES_HPP__*/
+
 ```
+
+   
 ## Camera.hpp
 ### 1. InitParameters
- ___class SL_SDK_EXPORT InitParameters:___
+ __class SL_SDK_EXPORT InitParameters:__
 
 *  RESOLUTION camera_resolution;//默认 RESOLUTION_HD720。
 *  int camera_fps;//set 0 表示按照默认。
@@ -657,12 +1010,12 @@ TrackingParameters(sl::Transform init_pos = sl::Transform(), bool _enable_memory
 -------------------------------------------------
 ### 4. SpatialMappingParameters
 *  typedef std::pair<float, float> interval;
-*  enum RESOLUTION {  
-            1. RESOLUTION_HIGH//0.02米      
-            2. RESOLUTION_MEDIUM//0.05米，默认   
-            3. RESOLUTION_LOW//0.08米   
-        };
-*  enum RANGE {  
+*  enum RESOLUTION { 
+            1. RESOLUTION_HIGH//0.02米 
+            2. RESOLUTION_MEDIUM//0.05米，默认 
+            3. RESOLUTION_LOW//0.08米 
+           };
+*  enum RANGE { 
             RANGE_NEAR, // Only depth close to the camera will be used by the spatial mapping.3.5米 \n 
             RANGE_MEDIUM, //Medium depth range 0.5米 默认选项 \n
             RANGE_FAR //useful outdoor.10米   \n
@@ -719,7 +1072,7 @@ SpatialMappingParameters(RESOLUTION resolution = RESOLUTION_HIGH,
 *  bool valid;//boolean that indicates if tracking is activated or not
 -------------------------------------------------------------------
 ### 6. class CameraMemberHandler
-**class SL_SDK_EXPORT Camera**   
+**class SL_SDK_EXPORT Camera** 
        `friend CameraMemberHandler;`     
 `public:`
 *  Camera();
